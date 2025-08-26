@@ -53,7 +53,7 @@ func NewServer(addr string) *Server {
 // NewHandler builds the HTTP handler (mux) for the API using provided logger and service.
 func NewHandler(logger *slog.Logger, svc *service.Service) http.Handler {
 	mux := http.NewServeMux()
-	mux.Handle("/health", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/api/health", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok"))
 	}))
@@ -97,6 +97,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	return s.server.Shutdown(ctx)
 }
 
+// withLogging is a middleware that logs requests using the provided logger.
 func withLogging(log *slog.Logger, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()

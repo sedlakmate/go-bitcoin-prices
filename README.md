@@ -1,4 +1,4 @@
-# Bitcoin LTP Service
+# Bitcoin Last Traded Price service
 
 A small Go service that exposes an HTTP API to retrieve the Last Traded Price (LTP) of Bitcoin for these pairs:
 - BTC/USD
@@ -7,14 +7,43 @@ A small Go service that exposes an HTTP API to retrieve the Last Traded Price (L
 
 It fetches data from Kraken's public API, caches results for a short, configurable TTL, and supports concurrent requests.
 
+## Considerations
+
+- Written in Go 1.22+ for compatibility with modern Docker images.
+- Uses TTL caching to reduce upstream calls and improve performance.
+- Basic structured logging with slog.
+- Resilient Kraken client with retries and timeouts.
+- Unit tests for core logic and handlers.
+- Optional integration test against the real Kraken API (caching disabled).
+- GitHub Actions CI for linting, testing, and building.
+
 ## API
 
-GET /api/v1/ltp
+### Health check
 
-Query parameters:
-- pairs: optional comma-separated list of pairs (e.g., BTC/USD,BTC/EUR).
+`GET /api/health`
 
 Response body:
+```
+"ok"
+```
+
+Example:
+`curl -s "http://localhost:8080/api/health"`
+
+### LTP
+
+`GET /api/v1/ltp`
+
+Query parameters:
+- `pairs`: comma-separated list of pairs. Possible values: BTC/USD BTC/EUR BTC/CHF
+
+
+Example:
+`curl -s "http://localhost:8080/api/v1/ltp?pairs=BTC/USD,BTC/EUR" | jq `
+
+Response body:
+```
 {
   "ltp": [
     { "pair": "BTC/CHF", "amount": 49000.12 },
@@ -22,6 +51,7 @@ Response body:
     { "pair": "BTC/USD", "amount": 52000.12 }
   ]
 }
+```
 
 Errors:
 - 400 if pairs are invalid
@@ -42,7 +72,7 @@ Pre-requirements:
 
 Commands:
 ```bash
-# Run tests
+# Run tests (unit + handler)
 go test ./...
 
 # Build
@@ -54,9 +84,21 @@ PORT=8080 CACHE_TTL=10 ./bin/bitcoin-prices
 
 Example requests:
 ```bash
-curl -s http://localhost:8080/api/v1/ltp | jq
 curl -s "http://localhost:8080/api/v1/ltp?pairs=BTC/USD,BTC/EUR" | jq
 ```
+
+## Integration tests (real Kraken API)
+
+There is an opt-in integration test that calls the real Kraken API. It’s excluded by default and requires network access.
+
+Run it explicitly with build tags and disable Go test result caching (-count=1):
+```bash
+# Only run the Kraken integration test, forcing re-execution each time
+go test -tags=integration -count=1 ./internal/kraken -run RealAPI -v
+```
+Notes:
+- May be flaky due to network or Kraken rate limiting; re-run if needed.
+- Uses pairs XBTUSD/XBTEUR and accepts canonical response keys.
 
 ## Docker
 
@@ -69,7 +111,7 @@ docker build -t bitcoin-ltp:latest .
 docker run --rm -p 8080:8080 -e CACHE_TTL=10 --name bitcoin-ltp bitcoin-ltp:latest
 
 # Call API
-curl -s http://localhost:8080/api/v1/ltp | jq
+curl -s http://localhost:8080/api/v1/ltp?pairs=BTC/USD,BTC/EUR | jq
 ```
 
 ## Notes
@@ -77,4 +119,3 @@ curl -s http://localhost:8080/api/v1/ltp | jq
 - Extensibility: Supported pairs and Kraken symbols are centralized in internal/pairs.
 - Logging: Basic structured logging using slog for requests and errors.
 - Resilience: The Kraken client retries on 429 and 5xx with backoff and uses timeouts.
-
