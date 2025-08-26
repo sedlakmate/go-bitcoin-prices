@@ -1,5 +1,8 @@
 # Bitcoin Last Traded Price service
 
+[![CI](https://github.com/sedlakmate/go-bitcoin-prices/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
+[![Integration (Real Kraken)](https://github.com/sedlakmate/go-bitcoin-prices/actions/workflows/integration.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/integration.yml)
+
 A small Go service that exposes an HTTP API to retrieve the Last Traded Price (LTP) of Bitcoin for these pairs:
 - BTC/USD
 - BTC/CHF
@@ -65,7 +68,9 @@ Environment variables:
 - KRAKEN_BASE_URL: Kraken API base URL (default https://api.kraken.com)
 - KRAKEN_RETRIES: Kraken client retries on 429/5xx (default 2)
 
-## Build and run (local)
+## Build and run 
+
+### Locally
 
 Pre-requirements:
 - Go 1.22+ (for Docker compatibility)
@@ -87,6 +92,20 @@ Example requests:
 curl -s "http://localhost:8080/api/v1/ltp?pairs=BTC/USD,BTC/EUR" | jq
 ```
 
+### In docker
+
+Build and run with Docker:
+```bash
+# Build image
+docker build -t bitcoin-ltp:latest .
+
+# Run container
+docker run --rm -p 8080:8080 -e CACHE_TTL=10 --name bitcoin-ltp bitcoin-ltp:latest
+
+# Call API
+curl -s http://localhost:8080/api/v1/ltp?pairs=BTC/USD,BTC/EUR | jq
+```
+
 ## Integration tests (real Kraken API)
 
 There is an opt-in integration test that calls the real Kraken API. It’s excluded by default and requires network access.
@@ -100,19 +119,6 @@ Notes:
 - May be flaky due to network or Kraken rate limiting; re-run if needed.
 - Uses pairs XBTUSD/XBTEUR and accepts canonical response keys.
 
-## Docker
-
-Build and run with Docker:
-```bash
-# Build image
-docker build -t bitcoin-ltp:latest .
-
-# Run container
-docker run --rm -p 8080:8080 -e CACHE_TTL=10 --name bitcoin-ltp bitcoin-ltp:latest
-
-# Call API
-curl -s http://localhost:8080/api/v1/ltp?pairs=BTC/USD,BTC/EUR | jq
-```
 
 ## Notes
 - Data freshness: The service fetches live data and caches for a short TTL (default 10s), providing accuracy within the last minute.
