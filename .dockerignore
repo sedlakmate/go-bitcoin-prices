@@ -1,0 +1,18 @@
+# VCS
+.git
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+
+# Binaries and build artifacts
+bin/
+*.out
+*.exe
+*.test
+
+# Modules cache (let Docker build handle deps)
+**/vendor/
+**/node_modules/
+
